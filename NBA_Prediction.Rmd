@@ -2,7 +2,7 @@
 title: "NBA"
 author: "Narcel Reedus"
 date: "October 11, 2017"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
