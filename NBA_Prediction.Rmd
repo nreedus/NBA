@@ -1,60 +1,73 @@
 ---
-title: "NBA"
+title: "NBA Moneyball"
 author: "Narcel Reedus"
 date: "October 11, 2017"
-output: pdf_document
+output:
+  html_document: default
+  pdf_document:
+    keep_tex: yes
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+### Summary
+NBA Moneyball uses multiple regressions of NBA stats and previous Win/Loss team records to predict the chances of teams reaching the playoffs. The term Moneyball was made popular by the 2011 movie starring Brad Pit as Billy Beane, the coach of the flailing Oakland A's, who used a data analytics approach to winning ball games. 
+
+This regression as an .8127 accuracy.  
 
 
-## Load libraries into RStudio
+### Load libraries into RStudio
 ```{r}
 library(dplyr)
 library(magrittr)
 library(ggplot2)
 ```
-## Read data
+### Read data
 ```{r}
 NBA_train <- read.csv("C:/Users/narce/OneDrive/Documents/GitHub/NBA/NBA/NBA_train.csv")
 
 NBA <-NBA_train
 ```
-## Examine the structure of the data (835 observations and 20 variables)
+### Examine the structure of the data (835 observations and 20 variables)
 ```{r}
 str(NBA)
 ```
-## Variables definitions
+### Variables definitions:
 
-## SeasonEnd: Year the season ended
-## Team: Name of team
-## Playoffs: Binary variable for playoff appearance
-## W: Wins (regular season) 
-## PTS: Points scored (regular season)
-## oppPTS:Oopponent points scored (regular season)
-## FG, FGA: Field goals (including three pointers)
-## X2P, X2PA: 2-pointers
-## X3P, X3PA: 3-pointers
-## FT, FTA: Free throws
-## ORB, DRB: Offensive and defensive rebounds
-## AST: Assists
-## STL: Steals
-## BLK: Blocks
-## TOV: Turnovers
+*SeasonEnd: Year the season ended
+*Team: Name of team  
+*Playoffs: Binary variable for playoff appearance  
+*W: Wins (regular season)   
+*PTS: Points scored (regular season)  
+*oppPTS:Oopponent points scored (regular season)  
+*FG, FGA: Field goals (including three pointers)  
+*X2P, X2PA: 2-pointers  
+*X3P, X3PA: 3-pointers  
+*FT, FTA: Free throws  
+*ORB, DRB: Offensive and defensive rebounds  
+*AST: Assists  
+*STL: Steals  
+*BLK: Blocks  
+*TOV: Turnovers  
 
-## Determine how many regular season wins needed to make playoffs 
-## by grouping the data by the number of wins and 
-## creating three new features: number of playoff appearances, 
-## and the percentage of playoff appearances fracPO divided by total number of wins
+The goal here is to determine how many regular season wins are needed to make the playoffs. 
+I start by grouping the data by the number of wins and 
+creating new features: number of playoff appearances, 
+and the percentage of playoff appearances (fracPO divided by total number of wins.)
+
 
 ```{r}
 tmp<- group_by(NBA, W) %>% summarise(nTot = n(), nPO = sum(Playoffs), fracPO = nPO/nTot)
 
 View(tmp)
 ```
-## Plot y=tmp$W, x=tmp$fracPO 
+
+### Plot graphs 
+
+Here I plot the number of Wins on the x axis and playoff appearance on the y axis.  
+
 
 ```{r}
 plot(tmp$W, tmp$fracPO, pch = 21, col = "red2", bg = "orange", 
@@ -63,23 +76,143 @@ abline(h = 0.9, lty = 3, col = "red2")
 abline(v = 35, lty = 3, col = "blue2")
 abline(v = 45, lty = 3, col = "blue2")
 ```
-## Results show that (45>) wins have a (90>) chance of making it to the playoffs
-## Predicting wins by calculating the difference between points scored (PTS) and points allowed (oppPTS)
+
+### Predictions  
+
+This plot shows that (45>) wins have a (90>) chance of making it to the playoffs.
+Predicting wins by calculating the difference between points scored (PTS) and points allowed (oppPTS)
+
 ```{r}
 NBA$PTSdiff <- NBA$PTS - NBA$oppPTS
 ```
-## Check the linear relationship between PTSdiff and Wins
 
+Check the linear relationship between PTSdiff and Wins  
+This plot shows that (45>) wins have a (90>) chance of making it to the playoffs.
+
+
+```{r}
 plot(NBA$PTSdiff, NBA$W, pch = 21, col = "red2", bg = "orange",
-     xlab = "PTS Difference", ylab = "Wins", main = "Wins / Points Scored")
+     xlab = "PTS Difference", ylab = "Wins", main = "Wins / Points Scored")  
+```     
 
+This is the linear regression Model for wins:  PTSdiff = independent variable and W = dependent variable  
 
-## Including Plots
+```{r}
+Wins_Reg <- lm(W ~ PTSdiff, data = NBA)
 
-You can also embed plots, for example:
+summary(Wins_Reg)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+W = 41 + 0.0325*(NBA$PTSdiff)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+The linear regression Model computes the PTSdiff needed attain W=> 45, PTSdiff>122.8  
+
+
+This formula will predict points scored. Dependent variable = PTS, independent variable = (X2PA, X3PA, FTA, ORB, DRB, AST, ST, BL, TOV)  
+
+```{r}
+PointsRS <- lm(PTS ~ X2PA + X3PA + FTA + AST + ORB + DRB + TOV + STL + BLK, data = NBA)
+
+summary(PointsRS)
+```  
+
+The summary shows significant correlation between X2PA, X3PA, FTA, AST, ORB and Wins (each having 3 stars).
+Independent variables DRB, TOV, STL, BLK do not show a strong correlation to determining Win
+R^2^ value = 0.8992 showing a good linear relationship between the independent and dependent variables to points scored.
+
+Sum of Squared Errors  
+
+```{r}
+SSE <- sum(PointsRS$residuals^2)
+print(SSE)
+```  
+
+Root Mean Error  
+
+```{r}
+RMSE <- sqrt(SSE/PointsRS$df.residual)
+RMSE
+```  
+```{r}
+mean(NBA$PTS)
+```  
+
+Fractional error = 2.2%
+
+It may be interesting to check the correlations between the variables 
+that we included in this first Model, to get some hints as to collinearity, 
+which could be relevant to know if we wanted to remove some variables.
+
+Running Model #2 removed TOV  
+
+```{r}
+PointsRS2 <- lm(PTS ~ X2PA + X3PA + FTA + AST + ORB + DRB + STL + BLK, data = NBA)
+
+summary(PointsRS2)
+```
+By removing TOV R^2^ = 0.8991 which is higher than Model1 at 0.8992.
+In Model3 DRB is removed  
+
+```{r}
+PointsRS3 <- lm(PTS ~ X2PA + X3PA + FTA + AST + ORB + STL + BLK, data = NBA)
+summary(PointsRS3)
+```  
+
+The Model3 R^2^ is the same at Model1  at 0.8991  
+
+In Model4 BLK is removed  
+
+```{r}
+PointsRS4 <- lm(PTS ~ X2PA + X3PA + FTA + AST + ORB + STL, data = NBA)
+summary(PointsRS4)
+```
+The Model4 R^2^ is the same at Model1 and Model3 at 0.8991
+A closer look at SSE and RMSE of Model4  
+
+```{r}
+SSE_4 <-sum(PointsRS4$residuals^2)
+RSME_4 <- sqrt(SSE_4/nrow(NBA))
+
+SSE_4
+RSME_4
+```  
+
+The values for Model4 (PointsRS4) are SSE = 28421464.9 and RMSE = 184.493 compared the the Model1 RMSE = 185.5191 (essentially the same)  
+
+Time for predictions
+Read in NBA_test data  
+
+```{r}
+NBA_test <- read.csv("C:/Users/narce/OneDrive/Documents/GitHub/NBA/NBA/NBA_test.csv")
+```
+Attempting to predict using Model4, the number of points in the 
+2012-2013 season using predict() and the new NBA_test.csv data    
+
+```{r}
+PointsPredictions <- predict(PointsRS4, newdata = NBA_test)
+summary(PointsPredictions)
+```
+To determine the accuracy of Model4 (0.8991) the SSE, SST, RMSE must be analyzed  
+
+```{r}
+SSE <- sum((PointsPredictions - NBA_test$PTS)^2)
+SSE
+SST <- sum((mean(NBA$PTS) - NBA_test$PTS)^2)
+SST
+```
+R2 is calculated with 1 minus the sum of squared errors divided by the total sum of squares  
+
+```{r}
+R2 <- 1 - SSE/SST
+R2
+
+RMSE <- sqrt(SSE/nrow(NBA_test))
+
+RMSE
+```  
+
+The values for Model4 (PointsRS4) are SSE = 28421464.9 and RMSE =  compared the the Model1 RMSE = 185.5191 (essentially the same)
+The predictions: 
+Model4 RMSE = 184.493 vs NBA_test = 196.37
+Model4 SSE = 28421464 vs NBA_test = 1079739
+R^2^ = 0.8127

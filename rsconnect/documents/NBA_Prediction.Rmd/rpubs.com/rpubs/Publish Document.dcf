@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/317686/b82da7dda9a14341ae6621727e8a4240
+bundleId: https://api.rpubs.com/api/v1/document/317686/b82da7dda9a14341ae6621727e8a4240
+url: http://rpubs.com/Nreedus/317686
+when: 1507822377.91109
